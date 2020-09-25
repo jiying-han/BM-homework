@@ -1,0 +1,191 @@
+---
+title: "Biostatisitcal Method Homework 1"
+author: "Jiying Han"
+output: html_document
+---
+
+```{r setup}
+library(tidyverse)
+library(arsenal)
+library(stats)
+```
+
+
+## Problem 1
+
+
+### 1) Descriptive statistics for all variables of interest.
+
+
+### a.
+Import data
+```{r}
+anti_data = read_csv("./hw1/Antibodies.csv")
+anti_data = filter(anti_data, Smell != "Unanswered/Others")
+str(anti_data)
+```
+
+
+
+Check for missing value
+```{r}
+anyNA(anti_data)
+```
+
+
+
+Clean the output
+```{r}
+my_controls = tableby.control(
+  total = T,
+  test = F,
+  numeric.stats = c("meansd", "medianq1q3", "range","Nmiss2"),
+  cat.stats = c("countpct", "Nmiss2"),
+  stats.labels = list(
+    meansd = "Mean(SD)",
+    medianq1q3 = "Median (Q1, Q3)",
+    range = "Min - Max", 
+    Nmiss2 = "Missing",
+    countpct = "N (%)"
+  )
+)
+
+```
+
+
+
+Make 'Gender' and 'Smell' and 'AgeCategory' a factor to show N(%)
+```{r}
+anti_df = anti_data %>% 
+  mutate(Gender = factor(Gender, labels = c("Male","Female"))) %>% 
+  mutate(Smell = factor(Smell, labels = c("Altered","Normal"))) %>% 
+  mutate(AgeCategory = factor(AgeCategory, labels = c("18-30","31-50", "51+")))
+```
+
+
+**table1**
+```{r}
+tab1 = tableby( ~Subject + AgeCategory + Antibody_IgM + Smell + Gender, data = anti_df, control = my_controls)
+summary(tab1, title = "Descriptive Statistics: Antibodies", text=T)
+```
+
+
+
+### b.
+Histogram1 for the Ig-M values
+```{r}
+max(anti_data$Antibody_IgM, na.rm = TRUE)
+min(anti_data$Antibody_IgM, na.rm = TRUE)
+
+ggplot(anti_data, aes(Antibody_IgM)) +
+  geom_histogram(col = "black", fill = "white", breaks = seq(0,1.5,0.03), aes(y = ..density..)) + 
+  geom_vline(aes(xintercept = mean(Antibody_IgM, na.rm=T)), color = "red", linetype="dashed", size = 2) + 
+  geom_density(alpha=.2, fill="#FF6666") + 
+  labs(title = "Histogram of the Ig-M values") + 
+  labs(x="IgM", y="Density")
+```
+
+
+
+\ Comment: we can see that the distribution of antibodies IgM isn't normal distribution ,but it's right tail. the mean of it is very close to zero.
+
+
+
+
+
+### 2) Descriptive statistics for all variables, stratified by smell category.
+
+
+### a. 
+Tabulation by smell category
+```{r}
+tab3 = tableby( Smell ~ Subject + AgeCategory + Antibody_IgM  + Gender, data = anti_df, control = my_controls, total = FALSE)
+summary(tab3, title = "Descriptive Statistics: Antibodies-stratified by smell category", text=T)
+```
+
+
+
+### b.
+Side-by-side histogram2
+```{r}
+ggplot(anti_data, aes(x=Antibody_IgM, fill=factor(Smell))) + 
+  geom_histogram(binwidth=.5, alpha=.5, position="identity", col="black", breaks=seq(0,1.5,0.03)) +
+  geom_vline(aes(xintercept=mean(Antibody_IgM, na.rm=T)), color="red", size=1.0) + 
+  labs(title="Side-by-side Histogram of IgM") +                                             
+  labs(x="Antibody_IgM", y="Count") + 
+  scale_fill_discrete(name = "Smell Status", labels = c("Altered", "Normal"))
+```
+
+
+\ Comment: In general, the IgM of altered smell people are higher than normal group.And there are some overlapping exist between two groups. The IgM of normal group is more concentrated than the altered one.
+
+
+
+
+
+Boxplots
+```{r}
+ggplot(anti_data, aes( y= Antibody_IgM, fill = factor(Smell))) + 
+  geom_boxplot(outlier.colour="black", outlier.shape=16,
+               outlier.size=2, notch=FALSE) + scale_fill_manual(values = c("blue", "red"), 
+                            labels = expression("Altered", "Normal"))  +
+  xlab("Count") + ylab("IgM") + labs(title = "Boxplot of Antibodies by smell category") + theme(legend.position = "top", legend.title = element_blank())
+  
+```
+
+
+
+\ Comment:There are more outliers in alteres smell group,and the distance of outliers is further than normal group. Besides, the median of altered people is higher than the normal group. The IgM range of altered group is also wider than the normal group.
+
+
+
+## Problem 2
+
+This is a story from CNN, titled "A healthy lifestyle can help you live longer even if you have chronic conditions, study suggests", authored by Katie Hunt. The original research study of this story is published by PLOS MEDICINE. 
+
+
+The title of the study is "Healthy lifestyle and life expectancy in people with multimorbidity in the UK Biobank: A longitudinal cohort study". Here are the summaries: 
+
+
+### ● Main goal(s) of the study
+
+To clarify whether and to what extent a healthy lifestyle impacts on longevity in people with multimorbidity and figure out the differential impact of each lifestyle factor(like smoke, exercise, alcohol consumption, diet) on the risk of
+death of multimorbidity.
+
+
+### ● Aspects of study design
+
+This is an observational study, and it used data from the UK Biobank study, which included 502,629 middle-aged (38–73 years) adults recruited from 22 sites across England, Wales, and Scotland. The baseline measures were collected between 2006 and 2010 , and with data linked to mortality records, and participants were followed up until 2016. Besides, they extracted 36 chronic conditions and defined multimorbidity as 2 or more conditions.
+
+However, they excluded participants that died within the first 2 years of follow-up (n = 2,516), who withdrew from the study (n = 91), and whose age during follow-up was less than 45 years (n = 30), and who had missing lifestyle data (n = 16,503), or who had missing covariate data (n = 2,549). Therefore, in the table one, there are 93,746 people with multimorbidity and 387,194 without.
+
+They used collected self-reported medical information based on physician diagnosis and multimorbidity were defined by three different resources. And use mortality data from official centre. As for healthy lifestyle factors, this study mainly focus on : leisure-time physical activity, smoking, diet (fruit and vegetables), and alcohol consumption. All of these information were collected mainly by interview.Other confounders like socioeconomic status, race and so on were adjusted.
+
+
+### ● Decide how seriously you should take the results of the research based on the evidence (or lack of it) supporting the findings.
+
+In this analysis, they found that regardless of the presence of multimorbidity, engaging in a healthier lifestyle was associated with up to 6.3 years longer life for men and 7.6 years for women; however, not all lifestyle risk factors equally correlated with life expectancy, with smoking being significantly worse than others.
+
+
+This result do have relevant individual, clinical and public health implications, especially it can be a power to force people embrace a healthy lifestyle, even though you are multimorbidity. And it warns people again about the risk of smoking. There are some strengths:
+
+  1. The sample size is large enough to draw conclusion
+  2. The based the healthy lifestyle factors on recommended national guidelines for the general population
+  3. They used weighted healthy lifestyle score and sensitivity investigation to employing a non-weighted score to assess the robustness of result, which enhance the public health message, and facilitate the comparison with previous literature.
+  
+  However, it still have some limitations:
+
+  1. All the data were collected from the UK, and participants from the UK Biobank were volunteers with slightly higher representation from affluent groups. Thus, it cannot represent the UK population and the reults might be different when we do similar study in other region or in different race. We need to be careful when refer the result to other regions.
+  2. Since the participates in the study were  middle-aged, children and adult who are under middle age were excluded in the participants, and we cannot draw any conclusions about them.
+  3. They not include other healthy lifestyle factors, like sleep duration.
+  4. There is y no standard definition of multimorbidity, which might generate some bias on the reuslt.
+  
+
+Overall, the media report briefly summary the key conclusion in the study and remind some limitations to readers. I think this report uses a subjective way to illustrate this study.
+
+According to this study, I do encourage people do regular exercise, eat a healthy diet and keep aways from smoke. 
+
+
+### Reference:
+1. https://edition.cnn.com/2020/09/22/health/multimorbidity-live-longer-study-wellness/index.html
+2. https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1003332
